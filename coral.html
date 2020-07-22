@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>Coral reefs and MPAs</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script src='https://api.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.css' rel='stylesheet' />
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>
+
+
+
+<style>
+	
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Arial';
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      background: #fff;
+    }
+
+    #legend {
+        background: rgba(255,255,255,0); /*can change these colors for background box*/
+        position: absolute;
+        color: #ffffff;
+        bottom: 40px;
+        left: 12px;
+        padding: 5px 5px;
+        z-index: 1;
+        font-size: 13px;
+        border-radius: 5px 5px 5px 5px;
+        -moz-border-radius: 5px 5px 5px 5px;
+        -webkit-border-radius: 5px 5px 5px 5px;
+        border: 0px solid #000000;
+    }
+
+    #legend span {
+      opacity: 1;
+    }
+
+    #menu {
+        background: #000000;
+        position: absolute;
+        z-index: 1;
+        top: 10px;
+        left: 10px;
+        border-radius: 3px;
+        width: 120px;
+        border: 1px solid rgba(0,0,0,0.4);
+        font-family: 'Arial';
+    }
+
+    #menu a {
+        font-size: 13px;
+        color: #ffffff;
+        display: block;
+        margin: 0;
+        padding: 0;
+        padding: 10px;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(0,0,0,0.25);
+        text-align: center;
+    }
+
+    #menu a:last-child {
+        border: none;
+    }
+
+    #menu a:hover {
+        background-color: #333333;
+        color: #ffffff;
+    }
+
+    #menu a.active {
+        background-color: #000000;
+        color: #ffffff;
+    }
+
+    #menu a.active:hover {
+        background: #333333;
+    }
+
+</style>
+</head>
+
+<body>
+
+<!-- toggle control -->
+<nav id='menu'></nav>
+
+<div id='map'></div>
+
+<div id='legend'>
+      <p><span style='background:#08e8de;'>&#8195;&#8195;</span> &nbsp;Coral reefs</p>
+      <p><span style='background:#ffffff66;'>&#8195;&#8195;</span> &nbsp;Marine Protected Areas</p>
+
+</div>
+
+<script>
+
+    // zoom out one level on smaller screens
+    var devWidth = $(window).width()
+          if (devWidth < 500) {
+          z = 5 // set zoom level for mobile
+          } else {
+          z = 6 // set zoom level for larger screens
+        }
+
+  // set up map
+	mapboxgl.accessToken = 'pk.eyJ1IjoiYXNobGVpZ2hwYXBwMSIsImEiOiJjazdudTE1czAwMmVpM2RtZnIzOXo4emd5In0.PwCVr7G7FoCl8mrGmY_c3Q'; // replaced with my access token
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/satellite-streets-v10', // choose derised basemap, I like this
+        zoom: z,
+        minZoom: 3,
+        center: [-84,9.85] // center map at lon/lat coordinates desired
+    });
+
+    // Add zoom controls
+    map.addControl(new mapboxgl.NavigationControl({showCompass: false}), 'bottom-right');
+    // Disable scroll zooming
+    map.scrollZoom.disable();
+    // Disable map rotation using touch rotation gesture
+    map.touchZoomRotate.disableRotation();
+
+    // main function that loads and styles the two layers
+    map.on('load', function() {
+
+        var layers = map.getStyle().layers;
+              // Find the index of the first symbol layer in the map style
+              var firstSymbolId;
+              for (var i = 0; i < layers.length; i++) {
+              if (layers[i].type === 'symbol') {
+              firstSymbolId = layers[i].id;
+              break;
+              }
+              }
+
+        map.addSource('coral', {
+            type: 'vector',
+            url: 'mapbox://ashleighpapp1.2gwt0pf1' // tileset id
+        });
+
+        map.addLayer({
+            'id': 'coral',
+            'type': 'fill',
+            'source': 'coral',
+            'source-layer': 'coral',
+            'paint': {
+                'fill-opacity': 1,
+                'fill-outline-color': '#08e8de',
+                'fill-color': '#08e8de'
+            }
+          },firstSymbolId);
+
+        map.addSource('mpa', {
+            type: 'vector',
+            url: 'mapbox://ashleighpapp1.def1hmyy' // tileset id
+        });
+
+        map.addLayer({
+            'id': 'Click to toggle MPA layer',
+            'type': 'fill',
+            'source': 'mpa',
+            'source-layer': 'mpa',
+            'paint': {
+                'fill-opacity': 0.2, // making this one mostly transparent
+                'fill-outline-color': '#ffffff',
+                'fill-color': '#ffffff',
+            }
+          },firstSymbolId);
+
+        });
+
+        // switches mpa layer on and off
+        var toggleableLayerIds = [ 'Click to toggle MPA layer' ];
+
+        for (var i = 0; i < toggleableLayerIds.length; i++) {
+          var id = toggleableLayerIds[i];
+
+          var link = document.createElement('a');
+          link.href = '#';
+          link.className = 'active';
+          link.textContent = id;
+
+          link.onclick = function (e) {
+            var clickedLayer = this.textContent;
+            e.preventDefault();
+            e.stopPropagation();
+
+          var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
+
+          if (visibility === 'visible') {
+              map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+              this.className = '';
+          } else {
+              this.className = 'active';
+              map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+          }
+        };
+
+        var layers = document.getElementById('menu');
+        layers.appendChild(link);
+        }
+
+
+</script>
+
+</body>
+</html>
